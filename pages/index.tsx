@@ -66,8 +66,8 @@ const Home: NextPage = () => {
             </p>
             <ConnectButton />
             <div className="flex flex-row">
-              <Mint customMintArgs={mintOne} title={'Mint Berry'} />
-              <Mint customMintArgs={mintTwo} title={'Mint Choco'} />
+              <Mint customMintArgs={mintOne} title={'Berry'} />
+              <Mint customMintArgs={mintTwo} title={'Choco'} />
             </div>
           </div>
           {isConnected ? (

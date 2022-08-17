@@ -34,22 +34,23 @@ export const Mint: React.FC<MintProps> = ({ customMintArgs, title }) => {
   } = useWaitForTransaction({
     hash: mintData?.hash,
   })
-  const { isConnected, address } = useAccount()
+  const { isConnected } = useAccount()
   const isMinted = txSuccess
 
   return (
     <div>
-      {isConnected && !isMinted && (
+      {!isMinted && isConnected && (
         <button
           disabled={!mint || isMintLoading || isMintStarted}
           className="button mt-12 mx-4"
           data-mint-loading={isMintLoading}
           data-mint-started={isMintStarted}
+          data-mint-done={isMinted}
           onClick={() => mint?.()}
         >
           {isMintLoading && 'Waiting for approval'}
           {isMintStarted && 'Minting...'}
-          {!isMintLoading && !isMintStarted && title}
+          {!isMintLoading && !isMintStarted && `Mint ${title}`}
         </button>
       )}
       {mintError && (
