@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import type { NextPage } from 'next'
@@ -18,12 +18,14 @@ const contractConfig = {
 }
 
 const Home: NextPage = () => {
-  const [totalMinted, setTotalMinted] = React.useState(0)
-  const { isConnected } = useAccount()
+  const [totalMinted, setTotalMinted] = useState(0)
+  const [metadataURL, setMetadataURL] = useState('')
+  const { isConnected, address } = useAccount()
 
   const { config: contractWriteConfig } = usePrepareContractWrite({
     ...contractConfig,
     functionName: 'mint',
+    args: [address, 1, 1],
   })
 
   const {
@@ -34,10 +36,17 @@ const Home: NextPage = () => {
     error: mintError,
   } = useContractWrite(contractWriteConfig)
 
-  const { data: totalSupplyData } = useContractRead({
+  const { data: accountBalance } = useContractRead({
     ...contractConfig,
-    functionName: 'totalSupply',
+    functionName: 'balanceOf',
     watch: true,
+    args: [address, 1],
+  })
+
+  const { data: uri } = useContractRead({
+    ...contractConfig,
+    functionName: 'uri',
+    args: [1],
   })
 
   const {
@@ -48,11 +57,11 @@ const Home: NextPage = () => {
     hash: mintData?.hash,
   })
 
-  React.useEffect(() => {
-    if (totalSupplyData) {
-      setTotalMinted(totalSupplyData.toNumber())
+  useEffect(() => {
+    if (accountBalance) {
+      setTotalMinted(accountBalance.toNumber())
     }
-  }, [totalSupplyData])
+  }, [accountBalance])
 
   const isMinted = txSuccess
 
@@ -61,10 +70,11 @@ const Home: NextPage = () => {
       <div className="container">
         <div style={{ flex: '1 1 auto' }}>
           <div style={{ padding: '24px 24px 24px 0' }}>
-            <h1>NFT Demo Mint</h1>
+            <h1 className="text-3xl text-purple-600">NFT Demo Mint</h1>
             <p style={{ margin: '12px 0 24px' }}>
               {totalMinted} minted so far!
             </p>
+            <p style={{ margin: '12px 0 24px' }}>{uri}</p>
             <ConnectButton />
 
             {mintError && (
