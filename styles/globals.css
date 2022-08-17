@@ -34,15 +34,14 @@ body {
 .button {
   appearance: none;
   border: none;
-  font-family: SFRounded, ui-rounded, "SF Pro Rounded";
   background-image: linear-gradient(to right, #3898FF, #7A70FF);
   display: inline-flex;
   line-height: 1;
   font-size: 16px;
   font-weight: 700;
   height: 35px;
-  padding: 0 24px;
-  border-radius: 9999px;
+  padding: 24px;
+  border-radius: 10px;
   align-items: center;
   color: white;
   transition: all ease 100ms;

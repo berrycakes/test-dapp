@@ -2,155 +2,150 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import type { NextPage } from 'next'
-import {
-  useAccount,
-  useContractRead,
-  useContractWrite,
-  usePrepareContractWrite,
-  useWaitForTransaction,
-} from 'wagmi'
-import contractInterface from '../contract-abi.json'
+import { useAccount, useContractRead, useQuery } from 'wagmi'
+import { contractConfig } from '../utils/ContractConfig'
 import FlipCard, { BackCard, FrontCard } from '../components/FlipCard'
+import { Mint } from '../components/Mint'
 
-const contractConfig = {
-  addressOrName: '0xB31E88Db4dC4E3bA66d6E1D699b53A0731D41719',
-  contractInterface: contractInterface,
-}
+// const getMetadata = async () => {
+//   if (uri) {
+//     const res = await fetch(uri.toString())
+//     const data = await res.json()
+//     console.log(data)
+//   }
+// }
 
 const Home: NextPage = () => {
-  const [totalMinted, setTotalMinted] = useState(0)
-  const [metadataURL, setMetadataURL] = useState('')
+  // const {data, status} = useQuery(['metadata'], ()=>getMetadata)
   const { isConnected, address } = useAccount()
 
-  const { config: contractWriteConfig } = usePrepareContractWrite({
-    ...contractConfig,
-    functionName: 'mint',
-    args: [address, 1, 1],
-  })
+  const { data: accountBalanceOne, isSuccess: accountOneSuccess } =
+    useContractRead({
+      ...contractConfig,
+      functionName: 'balanceOf',
+      watch: true,
+      args: [address, 1],
+    })
 
-  const {
-    data: mintData,
-    write: mint,
-    isLoading: isMintLoading,
-    isSuccess: isMintStarted,
-    error: mintError,
-  } = useContractWrite(contractWriteConfig)
+  const { data: accountBalanceTwo, isSuccess: accountTwoSuccess } =
+    useContractRead({
+      ...contractConfig,
+      functionName: 'balanceOf',
+      watch: true,
+      args: [address, 2],
+    })
 
-  const { data: accountBalance } = useContractRead({
-    ...contractConfig,
-    functionName: 'balanceOf',
-    watch: true,
-    args: [address, 1],
-  })
+  // const { data: uri } = useContractRead({
+  //   ...contractConfig,
+  //   functionName: 'uri',
+  //   args: [1],
+  // })
 
-  const { data: uri } = useContractRead({
-    ...contractConfig,
-    functionName: 'uri',
-    args: [1],
-  })
+  const totalMinted =
+    accountOneSuccess || accountTwoSuccess
+      ? accountBalanceOne?.toNumber() + accountBalanceTwo?.toNumber()
+      : 0
 
-  const {
-    data: txData,
-    isSuccess: txSuccess,
-    error: txError,
-  } = useWaitForTransaction({
-    hash: mintData?.hash,
-  })
-
-  useEffect(() => {
-    if (accountBalance) {
-      setTotalMinted(accountBalance.toNumber())
-    }
-  }, [accountBalance])
-
-  const isMinted = txSuccess
+  const mintOne = [address, 1, 1]
+  const mintTwo = [address, 2, 1]
 
   return (
-    <div className="page">
-      <div className="container">
-        <div style={{ flex: '1 1 auto' }}>
-          <div style={{ padding: '24px 24px 24px 0' }}>
-            <h1 className="text-3xl text-purple-600">NFT Demo Mint</h1>
-            <p style={{ margin: '12px 0 24px' }}>
-              {totalMinted} minted so far!
+    <main className="min-h-screen flex flex-col justify-between">
+      <section className="bg-white my-auto mx-0 flex items-center content-center">
+        <div className="grid max-w-screen-xl px-4 py-8 mx-auto gap-4 lg:gap-8 xl:gap-0 lg:py-16 lg:grid-cols-12">
+          <div className="mr-auto place-self-center lg:col-span-6">
+            <h1 className="max-w-2xl mb-4 text-4xl font-extrabold tracking-tight leading-none md:text-5xl xl:text-6xl ">
+              NFT Demo Mint
+            </h1>
+            <p className="max-w-2xl mb-6 font-light text-gray-500 lg:mb-8 md:text-lg lg:text-xl">
+              {totalMinted === 0
+                ? "You don't have any jellycakes :("
+                : totalMinted === 1
+                ? 'You have minted 1 jellycake! :)'
+                : `You have minted ${totalMinted} jellycakes! :D`}
             </p>
-            <p style={{ margin: '12px 0 24px' }}>{uri}</p>
             <ConnectButton />
-
-            {mintError && (
-              <p style={{ marginTop: 24, color: '#FF6257' }}>
-                Error: {mintError.message}
-              </p>
-            )}
-            {txError && (
-              <p style={{ marginTop: 24, color: '#FF6257' }}>
-                Error: {txError.message}
-              </p>
-            )}
-
-            {isConnected && !isMinted && (
-              <button
-                style={{ marginTop: 24 }}
-                disabled={!mint || isMintLoading || isMintStarted}
-                className="button"
-                data-mint-loading={isMintLoading}
-                data-mint-started={isMintStarted}
-                onClick={() => mint?.()}
-              >
-                {isMintLoading && 'Waiting for approval'}
-                {isMintStarted && 'Minting...'}
-                {!isMintLoading && !isMintStarted && 'Mint'}
-              </button>
-            )}
+            <div className="flex flex-row">
+              <Mint customMintArgs={mintOne} title={'Mint Berry'} />
+              <Mint customMintArgs={mintTwo} title={'Mint Choco'} />
+            </div>
           </div>
-        </div>
-
-        <div style={{ flex: '0 0 auto' }}>
-          {/* <FlipCard>
-            <FrontCard isCardFlipped={isMinted}>
-              <Image
-                layout="responsive"
-                src="/nft.png"
-                width="500"
-                height="500"
-                alt="RainbowKit Demo NFT"
-              />
-              <h1 style={{ marginTop: 24 }}>Rainbow NFT</h1>
-              <ConnectButton />
-            </FrontCard>
-            <BackCard isCardFlipped={isMinted}>
-              <div style={{ padding: 24 }}>
-                <Image
-                  src="/nft.png"
-                  width="80"
-                  height="80"
-                  alt="RainbowKit Demo NFT"
-                  style={{ borderRadius: 8 }}
-                />
-                <h2 style={{ marginTop: 24, marginBottom: 6 }}>NFT Minted!</h2>
-                <p style={{ marginBottom: 24 }}>
-                  Your NFT will show up in your wallet in the next few minutes.
-                </p>
-                <p style={{ marginBottom: 6 }}>
-                  View on{' '}
-                  <a href={`https://rinkeby.etherscan.io/tx/${mintData?.hash}`}>
-                    Etherscan
-                  </a>
-                </p>
-                <p>
-                  View on{' '}
-                  <a
-                    href={`https://testnets.opensea.io/assets/rinkeby/${txData?.to}/1`}
-                  >
-                    Opensea
-                  </a>
-                </p>
+          {isConnected ? (
+            <div className="lg:mt-0 lg:col-span-6 lg:flex bg-gradient-to-r p-2 rounded-2xl from-[#3898FF] via-[#7A70FF] to-[#9333EA]">
+              <div className="grid grid-cols-2 grid-rows-5 bg-white p-8 rounded-2xl">
+                <h3 className="col-span-2 row-span-1mb-4 text-2xl font-semibold">
+                  My Inventory
+                </h3>
+                <div className="flex flex-col items-center content-center row-span-4">
+                  <img
+                    className="object-none transition ease-in-out delay-150 hover:-translate-y-1 hover:scale-105 duration-300 mb-2"
+                    src="https://res.cloudinary.com/dbegssigw/image/upload/v1660736376/berry_hiwfrc.png"
+                    alt="berry"
+                  />
+                  <span className="text-gray-500">berry jellycakes</span>
+                  <span className="text-2xl font-bold">
+                    {accountBalanceOne ? accountBalanceOne.toNumber() : 0}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center content-center row-span-4">
+                  <img
+                    className="object-none transition ease-in-out delay-150 hover:-translate-y-1 hover:scale-105 duration-300 mb-2"
+                    src="https://res.cloudinary.com/dbegssigw/image/upload/v1660736377/choco_sa8i8o.png"
+                    alt="choco"
+                  />
+                  <span className="text-gray-500">choco jellycakes</span>
+                  <span className="text-2xl font-bold">
+                    {accountBalanceTwo ? accountBalanceTwo.toNumber() : 0}
+                  </span>
+                </div>
               </div>
-            </BackCard>
-          </FlipCard> */}
+            </div>
+          ) : (
+            <div className="lg:mt-0 lg:col-span-6 lg:flex ">
+              <div className="min-w-[600px] grid place-content-center">
+                <img
+                  src="https://media.tenor.com/images/5fc7f8ebacea507cd93a527138352c6f/tenor.gif"
+                  className="-translate-y-4"
+                />
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      </section>
+      <footer className="p-4 rounded-lg  md:flex md:items-center md:justify-end md:p-6">
+        <ul className="flex flex-wrap items-center mt-3 text-sm text-gray-500 sm:mt-0">
+          <li>
+            <a
+              href="https://www.rainbowkit.com/"
+              className="mr-4 hover:underline md:mr-6 "
+            >
+              rainbowkit
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://jellie.twala.io/"
+              className="mr-4 hover:underline md:mr-6"
+            >
+              jellie
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://media.tenor.com/images/5fc7f8ebacea507cd93a527138352c6f/tenor.gif"
+              className="mr-4 hover:underline md:mr-6"
+            >
+              gif
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/berrycakes" className="hover:underline">
+              berrycake
+            </a>
+          </li>
+        </ul>
+      </footer>
+    </main>
   )
 }
 
